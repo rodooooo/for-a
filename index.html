@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Para Ali</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Dancing Script', cursive;
+        }
+        canvas {
+            display: block;
+        }
+        #text-container {
+            position: absolute;
+            bottom: 12vh;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+            padding: 0 20px;
+        }
+        .subtitle {
+            font-size: 2.2rem;
+            color: #f472b6;
+            text-shadow: 0 0 12px rgba(244, 114, 182, 0.6);
+            margin-bottom: 2px;
+            min-height: 2.6rem;
+        }
+        .name {
+            font-size: 3.8rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 18px rgba(244, 114, 182, 0.9), 0 0 30px rgba(244, 114, 182, 0.7);
+            letter-spacing: 2px;
+            min-height: 4.2rem;
+        }
+
+        /* Animación fluida e individual por letra */
+        .char {
+            display: inline-block;
+            opacity: 0;
+            transform: scale(0.2) translateY(20px);
+            filter: blur(8px);
+            transition: 
+                opacity 0.35s ease-out, 
+                transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                filter 0.35s ease-out;
+            will-change: opacity, transform, filter;
+        }
+        .char.space {
+            width: 0.3em;
+        }
+        .char.show {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            filter: blur(0);
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="heartCanvas"></canvas>
+
+    <div id="text-container">
+        <p class="subtitle" id="subtitleText"></p>
+        <h1 class="name" id="nameText"></h1>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        const subtitleEl = document.getElementById('subtitleText');
+        const nameEl = document.getElementById('nameText');
+
+        const dpr = window.devicePixelRatio || 1;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+
+        ctx.scale(dpr, dpr);
+
+        function heartX(t) {
+            return 16 * Math.pow(Math.sin(t), 3);
+        }
+
+        function heartY(t) {
+            return -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        }
+
+        const N = 180; 
+        const steps = 30; 
+        const outerScale = Math.min(width, height) / 44;
+        const innerScale = outerScale * 0.45;
+        
+        const centerX = width / 2;
+        const centerY = height * 0.40;
+
+        const fullText1 = "Para la mejor nutri";
+        const fullText2 = "Ali";
+
+        // Encapsular cada letra en su propio elemento para la transición
+        function prepareChars(element, text) {
+            element.innerHTML = text.split('').map(char => {
+                if (char === ' ') return '<span class="char space">&nbsp;</span>';
+                return `<span class="char">${char}</span>`;
+            }).join('');
+            return element.querySelectorAll('.char');
+        }
+
+        const spans1 = prepareChars(subtitleEl, fullText1);
+        const spans2 = prepareChars(nameEl, fullText2);
+
+        let i = 0;
+        let j = 0;
+
+        function updateTextProgress() {
+            const progress = i / N;
+
+            // Progreso de "Para la mejor nutri" (0% a 65%)
+            const p1 = Math.min(1, progress / 0.65);
+            const chars1Count = Math.floor(p1 * spans1.length);
+            spans1.forEach((span, idx) => {
+                if (idx < chars1Count) span.classList.add('show');
+            });
+
+            // Progreso de "Ali" (60% a 100%)
+            if (progress > 0.60) {
+                const p2 = Math.min(1, (progress - 0.60) / 0.40);
+                const chars2Count = Math.floor(p2 * spans2.length);
+                spans2.forEach((span, idx) => {
+                    if (idx < chars2Count) span.classList.add('show');
+                });
+            }
+        }
+
+        function drawStep() {
+            // Renderiza a 4 iteraciones por fotograma (doble de velocidad que el paso previo)
+            for (let speed = 0; speed < 4; speed++) {
+                if (i >= N) {
+                    spans1.forEach(span => span.classList.add('show'));
+                    spans2.forEach(span => span.classList.add('show'));
+                    return;
+                }
+
+                const angle = (2 * Math.PI * i) / N;
+
+                const x0 = centerX + heartX(angle) * outerScale;
+                const y0 = centerY + heartY(angle) * outerScale;
+
+                const x1 = centerX + heartX(angle) * innerScale;
+                const y1 = centerY + heartY(angle) * innerScale;
+
+                const f1 = j / steps;
+                const f2 = (j + 1) / steps;
+
+                const p1x = x0 + (x1 - x0) * f1;
+                const p1y = y0 + (y1 - y0) * f1;
+                const p2x = x0 + (x1 - x0) * f2;
+                const p2y = y0 + (y1 - y0) * f2;
+
+                const r = Math.round(255 - (255 - 240) * f1);
+                const g = Math.round(180 - (180 - 100) * f1);
+                const b = Math.round(200 - (200 - 130) * f1);
+                
+                const w = 2.2 - (1.7 * f1);
+
+                ctx.beginPath();
+                ctx.moveTo(p1x, p1y);
+                ctx.lineTo(p2x, p2y);
+                ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.lineWidth = w;
+                ctx.stroke();
+
+                j++;
+                if (j >= steps) {
+                    j = 0;
+                    i++;
+                    updateTextProgress();
+                }
+            }
+
+            requestAnimationFrame(drawStep);
+        }
+
+        drawStep();
+    </script>
+</body>
+</html>
